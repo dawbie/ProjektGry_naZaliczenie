@@ -1,16 +1,37 @@
 import abc
+import copy
 import random
 from abc import abstractmethod
+from enum import Enum
+#                                    Dzień dobry Panie doktorze poproszę o informację zwrotną czy się Panu spododała moja gra.
+#
+#                                                                                                Pozdrawiam: Dawid Biegański
 
 
 class Gra:
     stan = "on"
 
 
+class PoziomTrudnosci(Enum):
+    LATWY = 1
+    NORMALNY = 2
+    TRUDNY = 3
+    TESTOWY = 4
+
+
 class Gracz:
 
-    @staticmethod
-    def czy_zyje():
+    def __init__(self):
+        self.__imie = ""
+        self.zdrowie = 20
+        self.stamina = 100
+        self.glod = 50
+        self.pragnienie = 100
+        self.atak = 2
+        self.pancerz = 0
+        self.szanse = 3
+
+    def czy_zyje(self):
         if gracz.zdrowie <= 0:
             print("umarłeś w wyniku odniesionych ran")
             Gra.stan = "off"
@@ -23,49 +44,72 @@ class Gracz:
         elif gracz.stamina <= 0:
             print("umarłeś z wycieńczenia")
             Gra.stan = "off"
-
-    def __init__(self):
-        self.__imie = ""
-        self.zdrowie = 20
-        self.stamina = 100
-        self.glod = 50
-        self.pragnienie = 100
-        self.atak = 2
-        self.pancerz = 0
+        if Gra.stan == "off":
+            decyzja = input("czy chcesz kontynuować??(t/n)")
+            match decyzja:
+                case "t":
+                    if self.szanse != 0:
+                        self.szanse -= 1
+                        print("wczytano wcześniejsze statystyki")
+                        print(f"liczba pozostałych wskrzeszeń = {self.szanse}")
+                        gracz.zdrowie = kopia.zdrowie
+                        self.stamina = kopia.stamina
+                        self.glod = kopia.glod
+                        self.pragnienie = kopia.pragnienie
+                        self.atak = kopia.atak
+                        self.pancerz = kopia.pancerz
+                        Gra.stan = "on"
+                    else:
+                        print("niestety ale to już koniec!")
+                case "n":
+                    print("dzięki za gre!!!")
+                case _:
+                    self.czy_zyje()
+        if gra.stan == "off":
+            exit()
 
     def ustaw(self):
-        wartosc = input("wybierz poziom trudnosci (łatwy = 1, normalny = 2, trudny = 3)")
-        match wartosc:
-            case "1":
+        wartosc = input("wybierz poziom trudnosci (łatwy = 1, normalny = 2, trudny = 3, testowy = 4): ")
+        try:
+            poziom = PoziomTrudnosci(int(wartosc))
+        except ValueError:
+            print("Nieprawidłowy wybór. Spróbuj ponownie.")
+            self.ustaw()
+            return
+
+        match poziom:
+            case PoziomTrudnosci.LATWY:
                 self.zdrowie = 80
                 self.stamina = 100
                 self.glod = 50
                 self.pragnienie = 100
                 self.atak = 20
                 self.pancerz = 10
-            case "2":
+                self.szanse = 2
+            case PoziomTrudnosci.NORMALNY:
                 self.zdrowie = 20
                 self.stamina = 70
                 self.glod = 40
                 self.pragnienie = 70
                 self.atak = 10
                 self.pancerz = 5
-            case "3":
+                self.szanse = 1
+            case PoziomTrudnosci.TRUDNY:
                 self.zdrowie = 20
                 self.stamina = 50
                 self.glod = 30
                 self.pragnienie = 50
                 self.atak = 5
                 self.pancerz = 2
-            case "test":
+                self.szanse = 0
+            case PoziomTrudnosci.TESTOWY:
                 self.zdrowie = 100
                 self.stamina = 100
                 self.glod = 100
                 self.pragnienie = 100
                 self.atak = 100
                 self.pancerz = 50
-            case _:
-                self.ustaw()
+                self.szanse = 10
 
     def get_info(self):
         print(f"zdrowie: {self.zdrowie}")
@@ -322,6 +366,7 @@ class Rzeka(Lokacja):
         self.obszar = 5
         self.trudnosc = 1
         self.nazwa = "rzeka"
+        self.koszt_eksploracji = self.obszar * self.trudnosc
 
     def eksploruj(self):
         wynik = random.randrange(1, 101)
@@ -335,6 +380,7 @@ class Rzeka(Lokacja):
             print("znalazłeś żmiję")
             wrog = Zmija()
             gracz.spotkanie(wrog)
+
 
 class MrocznyLas(Lokacja):
 
@@ -411,6 +457,7 @@ class Gory(Lokacja):
             niedzwiedz = Niedzwiedz()
             gracz.spotkanie(niedzwiedz)
             del niedzwiedz
+
         los2 = random.randrange(1, 11)
         if los2 <= 5:
             print(f"znalazłeś swoją wioskę!!! wróciłeś do domu po przejściu {nr_lokacji} lokacji")
@@ -441,19 +488,22 @@ class NieJadalne(Jedzenie):
         self.ilosc = ilosc
 
 
+gra = Gra()
 gracz = Gracz()
 gracz.ustaw()
 gracz.set_imie()
 nr_lokacji = 0
+typ_lokacji = 3
 lokacja = Las(nr_lokacji)
 print(f"Witaj {gracz.get_imie()} obudziłeś się w lesie, nie pamiętasz co się stało. Ale wiesz jedno, musisz wrucić do swojej wioski, która znajduje się w górach")
 print("aby dowiedzieć się na temat sterowania wpsz 'pomoc'")
 
 while Gra.stan == "on":
+    kopia = copy.copy(gracz)
     try:
-        gracz.czy_zyje()
         x = input()
         nr_lokacji = 1
+        gracz.czy_zyje()
         match x:
             case "pomoc":
                 print("aby wyświetlić swoje aktualne statystyji wpisz 'status'")
@@ -465,11 +515,12 @@ while Gra.stan == "on":
             case "szukaj":
                 gracz.stamina -= 10
                 gracz.pragnienie -= 10
-                typ_lokacji = 2
                 los_lokacji = random.randrange(0, 101)
-                if (los_lokacji >= 0) and (los_lokacji < 35):
+                if (los_lokacji >= 0) and (los_lokacji < 20):
+                    typ_lokacji = 1
+                elif (los_lokacji >= 20) and (los_lokacji < 45):
                     typ_lokacji = 2
-                elif (los_lokacji > 35) and (los_lokacji < 65):
+                elif (los_lokacji > 45) and (los_lokacji < 65):
                     typ_lokacji = 3
                 elif (los_lokacji > 65) and (los_lokacji < 80):
                     typ_lokacji = 4
@@ -479,9 +530,8 @@ while Gra.stan == "on":
                     typ_lokacji = 6
                 match typ_lokacji:
                     case 1:
-                        print(f"gratulacje wróciłeś do wioski po przejściu {nr_lokacji} lokacji")
-                        game = "off"
-                        continue
+                        nr_lokacji += 1
+                        lokacja = Rzeka(nr_lokacji)
                     case 2:
                         nr_lokacji += 1
                         lokacja = Lonka(nr_lokacji)
@@ -507,5 +557,6 @@ while Gra.stan == "on":
                 gracz.odpoczynek()
             case _:
                 print("wpisz poprawne polecenie(jeśli nie pamiętasz poleceń wpisz'pomoc')!")
+        gracz.czy_zyje()
     except Exception as e:
         print(f"wystąpił błąd {e}")
