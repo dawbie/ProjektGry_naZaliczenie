@@ -20,7 +20,7 @@ class Gracz:
         if gracz.glod <= 0:
             print("umarłeś z głodu")
             Gra.stan = "off"
-        if gracz.pragnienie <= 0:
+        if gracz.stamina <= 0:
             print("umarłeś z wycieńczenia")
             Gra.stan = "off"
 
@@ -31,6 +31,36 @@ class Gracz:
         self.glod = 50
         self.pragnienie = 100
         self.atak = 2
+
+    def ustaw(self):
+        wartosc = input("wybierz poziom trudnosci (łatwy = 1, normalny = 2, trudny = 3)")
+        match wartosc:
+            case "1":
+                self.zdrowie = 80
+                self.stamina = 100
+                self.glod = 50
+                self.pragnienie = 100
+                self.atak = 20
+            case "2":
+                self.zdrowie = 20
+                self.stamina = 70
+                self.glod = 40
+                self.pragnienie = 70
+                self.atak = 10
+            case "3":
+                self.zdrowie = 20
+                self.stamina = 50
+                self.glod = 30
+                self.pragnienie = 50
+                self.atak = 5
+            case "test":
+                self.zdrowie = 100
+                self.stamina = 100
+                self.glod = 100
+                self.pragnienie = 100
+                self.atak = 100
+            case _:
+                self.ustaw()
 
     def get_info(self):
         print(f"zdrowie: {self.zdrowie}")
@@ -84,6 +114,65 @@ class Gracz:
             else:
                 print(f"po {czas} godzinach odpoczynku zyskałeś {r_stamina} staminy oraz {r_zdrowie} zdrowia")
                 self.wyrownaj_statystyki()
+
+    def walcz(self, wrog):
+        self.zdrowie -= wrog.atak * (wrog.zdrowie / gracz.atak)
+        self.stamina -= wrog.zdrowie - (wrog.atak*1.5)
+        if self.zdrowie <= 0:
+            print(f"{wrog.nazwa} cię pokonał")
+            self.czy_zyje()
+        else:
+            print(
+                f"udało ci się zabić {wrog.nazwa}!(zdrowie - {wrog.atak * (wrog.zdrowie / gracz.atak)}, stamina - {3 * (wrog.zdrowie / gracz.atak)} )")
+
+    def uciekaj(self, wrog):
+        los = random.randrange(0, 101)
+        if los <= wrog.szansa:
+            self.stamina -= wrog.zdrowie
+            self.czy_zyje()
+            print(f"udało ci się uciec(stamina-{wrog.zdrowie})")
+        else:
+            self.zdrowie = 0
+            print(f"{wrog.nazwa} cie dopadł")
+            self.czy_zyje()
+
+    @staticmethod
+    def spotkanie(wrog):
+        print(f"napotkałeś na swojej drodze wilka(zdrowie: {wrog.zdrowie}, siła: {wrog.atak}) !!!")
+        decyzja = input("czy chcesz walczyć?(walcz/uciekaj)")
+        match decyzja:
+            case "walcz":
+                gracz.walcz(wrog)
+            case "uciekaj":
+                gracz.uciekaj(wrog)
+            case _:
+                print("podejmij właściwą decyzję! (walcz/uciekaj)")
+
+
+class Wrog(abc.ABC):
+    def __init__(self):
+        self.nazwa = ""
+        self.zdrowie = 0
+        self.atak = 0
+        self.szansa = 0
+
+
+class Wilk(Wrog):
+    def __init__(self):
+        super().__init__()
+        self.nazwa = "wilk"
+        self.zdrowie = random.randrange(2, 11)
+        self.atak = random.randrange(1, 4)
+        self.szansa = random.randrange(0, 101)
+
+
+class Niedzwiedz(Wrog):
+    def __init__(self):
+        super().__init__()
+        self.nazwa = "niedźwiedź"
+        self.zdrowie = 80
+        self.atak = 20
+        self.szansa = random.randrange(0, 60)
 
 
 class Lokacja(abc.ABC):
@@ -182,25 +271,7 @@ class Las(Lokacja):
             gracz.eksploracja_benefit(0, 0, p, 0)
         else:
             wilk = Wilk()
-            print(f"napotkałeś na swojej drodze wilka(zdrowie: {wilk.zdrowie}, siła: {wilk.atak}) !!!")
-            decyzja = input("czy chcesz walczyć?(walcz/uciekaj)")
-            match decyzja:
-                case "walcz":
-                    gracz.zdrowie -= wilk.atak*(wilk.zdrowie/gracz.atak)
-                    gracz.stamina -= 3*(wilk.zdrowie/gracz.atak)
-                    gracz.czy_zyje()
-                    print(f"udało ci się zabić wilka!(zdrowie - {wilk.atak*(wilk.zdrowie/gracz.atak)}, stamina - {3*(wilk.zdrowie/gracz.atak)} )")
-                case "uciekaj":
-                    powodzenie = random.randrange(0, 101)
-                    if powodzenie < 20:
-                        print("niestety wilk cię dopadł")
-                        gracz.zdrowie = 0
-                    else:
-                        gracz.stamina -= 30
-                        gracz.czy_zyje()
-                        print("udało ci się uciec(stamina - 30)")
-                case _:
-                    print("podejmij właściwą decyzję! (walcz/uciekaj)")
+            gracz.spotkanie(wilk)
 
 
 class MrocznyLas(Lokacja):
@@ -212,6 +283,9 @@ class MrocznyLas(Lokacja):
         self.nazwa = "mroczny las"
         self.koszt_eksploracji = self.obszar * self.trudnosc
 
+    def eksploruj(self):
+        pass
+
 
 class Pustkowie(Lokacja):
 
@@ -222,6 +296,9 @@ class Pustkowie(Lokacja):
         self.nazwa = "pustkowie"
         self.koszt_eksploracji = self.obszar * self.trudnosc
 
+    def eksploruj(self):
+        pass
+
 
 class Gory(Lokacja):
 
@@ -231,6 +308,17 @@ class Gory(Lokacja):
         self.trudnosc = 8
         self.nazwa = "góry"
         self.koszt_eksploracji = self.obszar * self.trudnosc
+
+    def eksploruj(self):
+        los = random.randrange(1, 11)
+        if los < 9:
+            niedzwiedz = Niedzwiedz()
+            gracz.spotkanie(niedzwiedz)
+        los2 = random.randrange(1, 11)
+        if los2 <= 5:
+            print(f"znalazłeś swoją wioskę!!! wróciłeś do domu po przejściu {nr_lokacji} lokacji")
+        else:
+            print("eksploruj góry dalej w poszukiwaniu domu lub idź do innej lokacji")
 
 
 class Jedzenie(abc.ABC):
@@ -256,33 +344,21 @@ class NieJadalne(Jedzenie):
         self.ilosc = ilosc
 
 
-class Zwierze(abc.ABC):
-    def __init__(self):
-        self.zdrowie = 0
-        self.atak = 0
-
-
-class Wilk(Zwierze):
-    def __init__(self):
-        super().__init__()
-        self.zdrowie = random.randrange(2, 11)
-        self.atak = random.randrange(1, 4)
-
-
 gracz = Gracz()
+gracz.ustaw()
 
 print("Aby rozpocząć gre wpisz swoje imię:")
-nr_lokacji = 0
 gracz.imie = input()
+nr_lokacji = 0
 lokacja = Las(nr_lokacji)
-print(f"Witaj {gracz.imie} obudziłeś się w lesie, nie pamiętasz co się stało. Ale wiesz jedno, musisz wrucić do swojej wioski")
+print(f"Witaj {gracz.imie} obudziłeś się w lesie, nie pamiętasz co się stało. Ale wiesz jedno, musisz wrucić do swojej wioski, która znajduje się w górach")
 print("aby dowiedzieć się na temat sterowania wpsz 'pomoc'")
 
 while Gra.stan == "on":
     try:
         gracz.czy_zyje()
         x = input()
-        nr_lokacji = 0
+        nr_lokacji = 1
         match x:
             case "pomoc":
                 print("aby wyświetlić swoje aktualne statystyji wpisz 'status'")
@@ -292,22 +368,23 @@ while Gra.stan == "on":
             case "status":
                 gracz.get_info()
             case "szukaj":
-                # gracz.stamina -= 10
-                # gracz.pragnienie -= 10
+                gracz.stamina -= 10
+                gracz.pragnienie -= 10
+
+                typ_lokacji = 6
+
                 # los_lokacji = random.randrange(0, 101)
-                # if (los_lokacji == 0) or (los_lokacji == 100) or (los_lokacji == 21):
-                #     typ_lokacji = 1
-                # elif (los_lokacji > 0) and (los_lokacji < 21):
-                #     typ_lokacji = 2
-                # elif (los_lokacji > 21) and (los_lokacji < 40):
-                #     typ_lokacji = 3
-                # elif (los_lokacji >= 40) and (los_lokacji < 60):
-                #     typ_lokacji = 4
-                # elif (los_lokacji >= 60) and los_lokacji < 80:
-                #     typ_lokacji = 5
-                # elif (los_lokacji >= 80) and los_lokacji < 100:
-                #     typ_lokacji = 6
-                typ_lokacji = 2
+                # if (los_lokacji >= 0) and (los_lokacji < 35):
+                #     typ_lokacji = 2                             #jedzenie           ----
+                # elif (los_lokacji > 35) and (los_lokacji < 65):
+                #     typ_lokacji = 3                             #woda, wilk         ----
+                # elif (los_lokacji > 65) and (los_lokacji < 80):
+                #     typ_lokacji = 4                             #szkielet, broń
+                # elif (los_lokacji > 80) and los_lokacji < 95:
+                #     typ_lokacji = 5                             #wąż, zbroja, oaza
+                # elif (los_lokacji >= 95) and los_lokacji < 100:
+                #     typ_lokacji = 6                             #niedźwiedź, win
+                # typ_lokacji = 2
                 match typ_lokacji:
                     case 1:
                         print(f"gratulacje wróciłeś do wioski po przejściu {nr_lokacji} lokacji")
@@ -329,7 +406,6 @@ while Gra.stan == "on":
                     case 6:
                         nr_lokacji += 1
                         lokacja = Gory(nr_lokacji)
-                print(nr_lokacji)
                 print(f"zawędrowałeś do: {lokacja.get_nazwa()}")
                 print(lokacja.get_info())
             case "eksploruj":
