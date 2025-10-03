@@ -3,9 +3,6 @@ import copy
 import random
 from abc import abstractmethod
 from enum import Enum
-#                                    Dzień dobry Panie doktorze poproszę o informację zwrotną czy się Panu spododała moja gra.
-#
-#                                                                                                Pozdrawiam: Dawid Biegański
 
 
 class Gra:
